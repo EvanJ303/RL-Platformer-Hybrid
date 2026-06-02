@@ -71,27 +71,21 @@ class DQNAgent:
         self.criterion = nn.SmoothL1Loss()
 
     # Select an action based on the current state and epsilon-greedy policy
-    def select_action(self, state, under_platform):
+    def select_action(self, state):
         # Select a random action with probability epsilon
         if np.random.rand() < self.epsilon:
             action = np.random.randint(0, self.action_dim)
         else:
-            # If the agent is under a platform, override the action based on the platform position
-            if under_platform == 'right':
-                action = 1
-            elif under_platform == 'left':
-                action = 0
-            else:
-                # Convert the state to a tensor and add a batch dimension
-                state = torch.tensor(state, dtype=torch.float32, device=self.device)
-                state = state.unsqueeze(0)
+            # Convert the state to a tensor and add a batch dimension
+            state = torch.tensor(state, dtype=torch.float32, device=self.device)
+            state = state.unsqueeze(0)
 
-                # Disable gradient calculation 
-                with torch.no_grad():
-                    # Get the Q-values from the policy network and select the action with the highest Q-value
-                    q_values = self.policy_net(state)
-                    q_values = q_values.squeeze(0)
-                    action = q_values.argmax().item()
+            # Disable gradient calculation 
+            with torch.no_grad():
+                # Get the Q-values from the policy network and select the action with the highest Q-value
+                q_values = self.policy_net(state)
+                q_values = q_values.squeeze(0)
+                action = q_values.argmax().item()
 
         # Return the selected action
         return action

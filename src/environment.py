@@ -174,24 +174,8 @@ def step(agent_input):
     # Small time penalty
     reward -= 0.01
 
-    # Initialize the under-platform state
-    under_platform = None
-
-    # Check if the agent is under any platform
-    for platform in platforms:
-        # Check if the agent is under the platform
-        if agent.y + agent.height > platform.y and agent.x + agent.width > platform.x - 30 and agent.x < platform.x + platform.width + 30:
-            # Determine whether the agent is to the left or right of the center of the platform
-            if agent.x  + agent.width / 2 > platform.x + platform.width / 2:
-                # Set the under-platform state to 'right'
-                under_platform = 'right'
-            else:
-                # Set the under-platform state to 'left'
-                under_platform = 'left'
-            break
-
-    # Return the state, reward, done, and under-platform state
-    return state, reward, done, under_platform
+    # Return the state, reward, and done
+    return state, reward, done
 
 # Reset the environment
 def reset():

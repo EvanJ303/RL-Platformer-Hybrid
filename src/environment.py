@@ -4,6 +4,7 @@ import numpy as np
 import pygame
 # System for exiting the program
 import sys
+from collections import deque
 
 # Initialize screen dimensions
 WIDTH = 1200
@@ -15,7 +16,7 @@ pygame.display.set_caption('Platformer')
 
 # Initialize the clock and set the frames per second
 clock = pygame.time.Clock()
-FPS = 160
+FPS = 1000
 
 # Define colors
 WHITE = (255, 255, 255)
@@ -30,17 +31,34 @@ agent_speed = 5
 agent_vel_y = 0
 # Define gravity and jump power
 GRAVITY = 0.5
-JUMP_POWER = -20
+JUMP_POWER = -15
 # Set the on-ground state to 0 (not on ground)
 on_ground = 0
 
-# Default state of the agent and objective
+# Default agent state for reset; objective coordinates are selected randomly in reset()
 # (agent_x, agent_y, agent_vel_y, objective_x, objective_y, on_ground)
-DEFAULT_STATE = (588, 300, 0, 570, 305, 0)
+DEFAULT_STATE = (588, 525, 0, 0, 0, 1)
 
 # Define the maximum number of steps in an episode and set the step count to 0
 MAX_STEPS = 3000
 step_count = 0
+
+# Horizontal-idle punishment settings
+# Time window (seconds) to consider the agent "idle" horizontally
+HORIZONTAL_IDLE_TIME = 0.5
+# Penalty applied per step while idle (tunable)
+HORIZONTAL_IDLE_PENALTY_PER_STEP = 0.1
+# Frames threshold computed from FPS
+HORIZONTAL_IDLE_THRESHOLD = int(HORIZONTAL_IDLE_TIME * FPS)
+# Minimum average horizontal velocity (pixels per frame) required to avoid penalty
+# e.g., 0.5 means the agent must move ~80 pixels over 0.5 seconds at 160 FPS
+HORIZONTAL_MIN_VELOCITY = 0.5
+# Recent x positions for sliding-window velocity calculation
+recent_x = deque(maxlen=HORIZONTAL_IDLE_THRESHOLD)
+# Initial distance to the current objective (used to normalize distance reward)
+initial_dist = None
+# Small epsilon to avoid division by zero when normalizing
+DIST_EPS = 1e-6
 
 # Initialize the ground
 ground = pygame.Rect(0, 550, WIDTH, 50)
@@ -49,23 +67,29 @@ ground = pygame.Rect(0, 550, WIDTH, 50)
 platforms = [
     pygame.Rect(250, 450, 200, 20),
     pygame.Rect(500, 350, 200, 20),
-    pygame.Rect(750, 450, 200, 20)
+    pygame.Rect(750, 450, 200, 20),
+    pygame.Rect(250, 250, 200, 20),
+    pygame.Rect(500, 150, 200, 20),
+    pygame.Rect(750, 250, 200, 20)
 ]
 
 # Initialize the objectives
 objectives = [
-    pygame.Rect(320, 405, 60, 60),
-    pygame.Rect(570, 305, 60, 60),
-    pygame.Rect(820, 405, 60, 60)
+    pygame.Rect(320, 390, 60, 60),
+    pygame.Rect(570, 290, 60, 60),
+    pygame.Rect(820, 390, 60, 60),
+    pygame.Rect(320, 190, 60, 60),
+    pygame.Rect(570, 90, 60, 60),
+    pygame.Rect(820, 190, 60, 60)
 ]
 
 # Set the initial objective index
-objective_index = 1
+objective_index = 0
 
 # Step function to handle the agent's actions and give feedback
 def step(agent_input):
     # Access global variables
-    global agent_vel_y, on_ground, objective_index, step_count
+    global agent_vel_y, on_ground, objective_index, step_count, recent_x, initial_dist
 
     # Check if the maximum number of steps has been reached
     done = False
@@ -125,16 +149,49 @@ def step(agent_input):
     # Check whether or not the agent is touching an objective
     touched_objective = agent.colliderect(objectives[objective_index])
 
-    # If the agent touches an objective, change the objective index
-    if touched_objective:
-        new_index = objective_index
+    # Set the reward to 0
+    reward = 0.0
 
-        # Randomly select a new objective index and ensure it's different from the current one
+    # Calculate the distance to the current objective before it changes
+    curr_dist = np.sqrt((agent.x - objectives[objective_index].x) ** 2 + (agent.y - objectives[objective_index].y) ** 2)
+
+    # Normalize distance reward by the initial distance to this objective so
+    # per-objective shaping is roughly bounded.
+    if initial_dist is None:
+        denom = max(prev_dist, DIST_EPS)
+    else:
+        denom = max(initial_dist, DIST_EPS)
+
+    dist_reward = (prev_dist - curr_dist) / denom
+
+    # Reward the agent if it touched an objective
+    if touched_objective:
+        reward = 5.0 + dist_reward
+        # choose a new objective index different from current
+        new_index = objective_index
         while new_index == objective_index:
-            new_index = np.random.randint(0, 3)
-        
-        # Update the objective index
+            new_index = np.random.randint(0, len(objectives))
         objective_index = new_index
+        # set initial distance for the newly chosen objective
+        initial_dist = np.sqrt((agent.x - objectives[objective_index].x) ** 2 + (agent.y - objectives[objective_index].y) ** 2)
+    else:
+        reward = dist_reward
+
+    # Small time penalty
+    reward -= 0.001
+
+    # Horizontal velocity punishment using sliding-window average velocity check.
+    # Append current x to recent positions and calculate true average velocity
+    # as the absolute net displacement over the window divided by time.
+    # If the agent's average velocity over the window is below HORIZONTAL_MIN_VELOCITY,
+    # apply a per-step penalty to discourage slow/stalling movement.
+    recent_x.append(agent.x)
+    if len(recent_x) >= recent_x.maxlen:
+        # Calculate net displacement and average velocity
+        net_displacement = recent_x[-1] - recent_x[0]
+        avg_horizontal_velocity = abs(net_displacement) / (len(recent_x) - 1)
+        if avg_horizontal_velocity < HORIZONTAL_MIN_VELOCITY:
+            reward -= HORIZONTAL_IDLE_PENALTY_PER_STEP
 
     # Clear the screen
     screen.fill(WHITE)
@@ -155,24 +212,6 @@ def step(agent_input):
 
     # Create the state
     state = (agent.x, agent.y, agent_vel_y, objectives[objective_index].x, objectives[objective_index].y, on_ground)
-    
-    # Set the reward to 0
-    reward = 0.0
-
-    # Reward the agent if it touched an objective
-    if touched_objective:
-        reward = 20.0
-
-    # Calculate the distance to the objective
-    curr_dist = np.sqrt((agent.x - objectives[objective_index].x) ** 2 + (agent.y - objectives[objective_index].y) ** 2)
-
-    # Calculate the distance reward
-    dist_reward = (prev_dist - curr_dist)
-    # Update the reward with the distance reward
-    reward += dist_reward
-
-    # Small time penalty
-    reward -= 0.01
 
     # Return the state, reward, and done
     return state, reward, done
@@ -180,19 +219,27 @@ def step(agent_input):
 # Reset the environment
 def reset():
     # Access global variables
-    global DEFAULT_STATE, agent_vel_y, objective_index, on_ground, step_count
+
+    global DEFAULT_STATE, agent_vel_y, objective_index, on_ground, step_count, recent_x, initial_dist
 
     # Reset the agent's position and velocity
     agent.x = DEFAULT_STATE[0]
     agent.y = DEFAULT_STATE[1]
     agent_vel_y = DEFAULT_STATE[2]
-    # Reset the objective index
-    objective_index = 1
+    # Reset to a random starting objective
+    objective_index = np.random.randint(0, len(objectives))
     # Reset the on-ground state
     on_ground = DEFAULT_STATE[5]
 
     # Reset the step count
     step_count = 0
+
+    # Reset idle tracking
+    recent_x.clear()
+    recent_x.append(DEFAULT_STATE[0])
+
+    # Initialize the initial distance used for normalizing distance reward
+    initial_dist = np.sqrt((agent.x - objectives[objective_index].x) ** 2 + (agent.y - objectives[objective_index].y) ** 2)
 
     # Clear the screen
     screen.fill(WHITE)
@@ -209,5 +256,5 @@ def reset():
     # Update the display
     pygame.display.flip()
 
-    # Return the default state and done flag
-    return DEFAULT_STATE, False
+    # Return the current state with the randomly selected objective
+    return (agent.x, agent.y, agent_vel_y, objectives[objective_index].x, objectives[objective_index].y, on_ground)

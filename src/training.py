@@ -11,23 +11,23 @@ import environment
 agent = DQNAgent(6, 3)
 
 # Set number of episodes
-NUM_EPISODES = 300
+NUM_EPISODES = 1000
 # Calculate the timestamp
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
 # Repeat for each episode
 for episode in range(NUM_EPISODES):
-    # Reset the environment and receive the state and under-platform state
-    state, under_platform = environment.reset()
+    # Reset the environment and receive the state
+    state = environment.reset()
     # Set the episode reward to 0
     episode_reward = 0.0
 
     # Repeat for each step
     for step in count():
-        # Select the action using the state and under-platform state
-        action = agent.select_action(state, under_platform)
-        # Input the action into the environment and receive the next state, reward, done, and under-platform state
-        next_state, reward, done, under_platform = environment.step(action)
+        # Select the action using the state
+        action = agent.select_action(state)
+        # Input the action into the environment and receive the next state, reward, and done
+        next_state, reward, done = environment.step(action)
 
         # Update the episode reward with the reward
         episode_reward += reward

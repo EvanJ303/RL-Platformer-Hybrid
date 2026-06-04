@@ -42,14 +42,14 @@ class DQNAgent:
         # Initialize batch size
         self.batch_size = 64
         # Initialize epsilon-greedy parameters
-        self.epsilon_start = 0.9
-        self.epsilon_end = 0.1
+        self.epsilon_start = 1.0
+        self.epsilon_end = 0.05
         self.epsilon = self.epsilon_start
-        self.epsilon_decay = 0.999
+        self.epsilon_decay = 0.9999
         # Initialize gamma, tau, and learning rate
         self.gamma = 0.99
         self.tau = 0.005
-        self.lr = 0.00025
+        self.lr = 0.0003
         # Initialize replay memory with a maximum capacity
         self.memory = ReplayMemory(150000)
 

@@ -43,18 +43,6 @@ DEFAULT_STATE = (588, 525, 0, 0, 0, 1)
 MAX_STEPS = 3000
 step_count = 0
 
-# Horizontal-idle punishment settings
-# Time window (seconds) to consider the agent "idle" horizontally
-HORIZONTAL_IDLE_TIME = 0.5
-# Penalty applied per step while idle (tunable)
-HORIZONTAL_IDLE_PENALTY_PER_STEP = 0.1
-# Frames threshold computed from FPS
-HORIZONTAL_IDLE_THRESHOLD = int(HORIZONTAL_IDLE_TIME * FPS)
-# Minimum average horizontal velocity (pixels per frame) required to avoid penalty
-# e.g., 0.5 means the agent must move ~80 pixels over 0.5 seconds at 160 FPS
-HORIZONTAL_MIN_VELOCITY = 0.5
-# Recent x positions for sliding-window velocity calculation
-recent_x = deque(maxlen=HORIZONTAL_IDLE_THRESHOLD)
 # Initial distance to the current objective (used to normalize distance reward)
 initial_dist = None
 # Small epsilon to avoid division by zero when normalizing
@@ -89,7 +77,7 @@ objective_index = 0
 # Step function to handle the agent's actions and give feedback
 def step(agent_input):
     # Access global variables
-    global agent_vel_y, on_ground, objective_index, step_count, recent_x, initial_dist
+    global agent_vel_y, on_ground, objective_index, step_count, initial_dist
 
     # Check if the maximum number of steps has been reached
     done = False
@@ -180,19 +168,6 @@ def step(agent_input):
     # Small time penalty
     reward -= 0.001
 
-    # Horizontal velocity punishment using sliding-window average velocity check.
-    # Append current x to recent positions and calculate true average velocity
-    # as the absolute net displacement over the window divided by time.
-    # If the agent's average velocity over the window is below HORIZONTAL_MIN_VELOCITY,
-    # apply a per-step penalty to discourage slow/stalling movement.
-    recent_x.append(agent.x)
-    if len(recent_x) >= recent_x.maxlen:
-        # Calculate net displacement and average velocity
-        net_displacement = recent_x[-1] - recent_x[0]
-        avg_horizontal_velocity = abs(net_displacement) / (len(recent_x) - 1)
-        if avg_horizontal_velocity < HORIZONTAL_MIN_VELOCITY:
-            reward -= HORIZONTAL_IDLE_PENALTY_PER_STEP
-
     # Clear the screen
     screen.fill(WHITE)
     
@@ -220,7 +195,7 @@ def step(agent_input):
 def reset():
     # Access global variables
 
-    global DEFAULT_STATE, agent_vel_y, objective_index, on_ground, step_count, recent_x, initial_dist
+    global DEFAULT_STATE, agent_vel_y, objective_index, on_ground, step_count, initial_dist
 
     # Reset the agent's position and velocity
     agent.x = DEFAULT_STATE[0]
@@ -233,10 +208,6 @@ def reset():
 
     # Reset the step count
     step_count = 0
-
-    # Reset idle tracking
-    recent_x.clear()
-    recent_x.append(DEFAULT_STATE[0])
 
     # Initialize the initial distance used for normalizing distance reward
     initial_dist = np.sqrt((agent.x - objectives[objective_index].x) ** 2 + (agent.y - objectives[objective_index].y) ** 2)

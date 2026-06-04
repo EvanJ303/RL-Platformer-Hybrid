@@ -4,7 +4,6 @@ import numpy as np
 import pygame
 # System for exiting the program
 import sys
-from collections import deque
 
 # Initialize screen dimensions
 WIDTH = 1200

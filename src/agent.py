@@ -49,7 +49,7 @@ class DQNAgent:
         # Initialize gamma, tau, and learning rate
         self.gamma = 0.99
         self.tau = 0.005
-        self.lr = 0.0003
+        self.lr = 0.0005
         # Initialize replay memory with a maximum capacity
         self.memory = ReplayMemory(150000)
 

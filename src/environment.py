@@ -15,7 +15,7 @@ pygame.display.set_caption('Platformer')
 
 # Initialize the clock and set the frames per second
 clock = pygame.time.Clock()
-FPS = 1000
+FPS = 160
 
 # Define colors
 WHITE = (255, 255, 255)

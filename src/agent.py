@@ -45,7 +45,7 @@ class DQNAgent:
         self.epsilon_start = 1.0
         self.epsilon_end = 0.05
         self.epsilon = self.epsilon_start
-        self.epsilon_decay = 0.9999
+        self.epsilon_decay = 0.995
         # Initialize gamma, tau, and learning rate
         self.gamma = 0.99
         self.tau = 0.005

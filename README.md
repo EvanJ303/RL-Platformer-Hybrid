@@ -1,5 +1,5 @@
 # RL-Platformer
-Deep Q-Learning applied to a simple platformer game. The hybrid agent uses a deep Q-network along with a small and infrequently-called fixed policy to help streamline the bot's gameplay.
+Deep Q-Learning applied to a simple platformer game. The agent uses a deep Q-network to efficiently jump between platforms and touch objectives.
 
 ## Dependencies
 PyTorch, Pygame, Numpy

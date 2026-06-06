@@ -12,8 +12,6 @@ agent = DQNAgent(6, 3)
 
 # Set number of episodes
 NUM_EPISODES = 1000
-# Calculate the timestamp
-timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
 # Repeat for each episode
 for episode in range(NUM_EPISODES):
@@ -53,12 +51,17 @@ for episode in range(NUM_EPISODES):
             agent.decay_epsilon()
             break
 
-# Create a path for the checkpoint using the timestamp
-checkpoint_path = f'./data/models/dqn_agent_{timestamp}.pth'
+        # Check if the episode is a multiple of 200
+        if (episode + 1) % 200 == 0:
+            # Calculate the timestamp
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 
-# Save the agent in the checkpoint path
-agent.save(checkpoint_path)
+            # Create a path for the checkpoint using the timestamp
+            checkpoint_path = f'./data/models/dqn_agent_{timestamp}.pth'
 
-# Write the checkpoint path to a text file
-with open('./data/latest_checkpoint.txt', 'w') as f:
-    f.write(checkpoint_path)
+            # Save the agent in the checkpoint path
+            agent.save(checkpoint_path)
+            
+            # Write the checkpoint path to a text file
+            with open('./data/latest_checkpoint.txt', 'w') as f:
+                f.write(checkpoint_path)

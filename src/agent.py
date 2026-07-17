@@ -1,3 +1,8 @@
+# Collections for the replay memory
+from collections import deque, namedtuple
+# Random for sampling experiences
+import random
+
 # PyTorch deep learning library
 import torch
 import torch.nn as nn
@@ -5,12 +10,9 @@ import torch.nn.utils as utils
 import torch.optim as optim
 # Numpy for numerical operations
 import numpy as np
+
 # Custom model module
 import model
-# Collections for the replay memory
-from collections import deque, namedtuple
-# Random for sampling experiences
-import random
 
 # Named tuple for storing experiences in the replay memory
 Experience = namedtuple('Experience', ('state', 'action', 'next_state', 'reward'))

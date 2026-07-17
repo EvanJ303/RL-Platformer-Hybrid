@@ -1,5 +1,6 @@
 # Itertools for iteration
 from itertools import count
+
 # Custom DQN agent
 from agent import DQNAgent
 # Custom environment

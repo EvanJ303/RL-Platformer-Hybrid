@@ -1,9 +1,10 @@
+# System for exiting the program
+import sys
+
 # Numpy for numerical operations
 import numpy as np
 # Pygame for rendering and game loop
 import pygame
-# System for exiting the program
-import sys
 
 # Initialize screen dimensions
 WIDTH = 1200
